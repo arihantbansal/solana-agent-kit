@@ -4,8 +4,13 @@ import {
   MINT_SIZE,
   getMinimumBalanceForRentExemptAccount,
   TOKEN_PROGRAM_ID,
-} from "@solana/spl-token";
-import { Keypair, SystemProgram, Transaction  } from "@solana/web3.js";
+} from "@solana-program/token";
+import {
+  generateKeyPair,
+  getAddressFromPublicKey,
+  SystemProgram,
+  Transaction,
+} from "@solana/web3.js";
 import { sendTx } from "../utils/send_tx";
 
 /**
@@ -17,18 +22,18 @@ import { sendTx } from "../utils/send_tx";
  */
 export async function deploy_token(
   agent: SolanaAgentKit,
-  decimals: number = 9
+  decimals: number = 9,
   // initialSupply?: number
 ) {
   try {
     // Create new token mint
     const lamports = await getMinimumBalanceForRentExemptAccount(
-      agent.connection
+      agent.connection,
     );
 
-    const mint = Keypair.generate();
+    const mint = await generateKeyPair();
 
-    console.log("Mint address: ", mint.publicKey.toString());
+    console.log("Mint address: ", getAddressFromPublicKey(mint.publicKey));
     console.log("Agent address: ", agent.wallet_address.toString());
 
     let account_create_ix = SystemProgram.createAccount({
@@ -44,7 +49,7 @@ export async function deploy_token(
       decimals,
       agent.wallet_address,
       agent.wallet_address,
-      TOKEN_PROGRAM_ID
+      TOKEN_PROGRAM_ID,
     );
 
     let tx = new Transaction().add(account_create_ix, create_mint_ix);
@@ -55,7 +60,7 @@ export async function deploy_token(
 
     console.log(
       "Token deployed successfully. Mint address: ",
-      mint.publicKey.toString()
+      mint.publicKey.toString(),
     );
 
     return {

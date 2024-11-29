@@ -1,5 +1,5 @@
 import { SolanaAgentKit } from "../agent";
-import { Transaction, Keypair, TransactionInstruction } from "@solana/web3.js";
+import { Transaction, TransactionInstruction } from "@solana/web3.js";
 import { Connection, ComputeBudgetProgram } from "@solana/web3.js";
 
 /**

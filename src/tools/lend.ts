@@ -1,4 +1,7 @@
-import { VersionedTransaction } from "@solana/web3.js";
+import {
+  getAddressFromPublicKey,
+  getTransactionDecoder,
+} from "@solana/web3.js";
 import { SolanaAgentKit } from "../index";
 import { LuloAccountDetailsResponse, LuloDepositAssetMint } from "../types";
 import { getPriorityFees } from "../utils/send_tx";
@@ -23,13 +26,17 @@ export async function lendAsset(
       throw new Error("Missing Lulo API key");
     }
 
+    const agentAddress = (
+      await getAddressFromPublicKey(agent.wallet.publicKey)
+    ).toString();
+
     const request = {
-      owner: agent.wallet.publicKey.toBase58(),
-      mintAddress: asset.toBase58(),
+      owner: agentAddress,
+      mintAddress: asset.toString(),
       depositAmount: amount.toString(),
     };
 
-    const priorityFees = await getPriorityFees(agent.connection);
+    const priorityFees = await getPriorityFees(agent.rpc);
     const priority = `?priorityFee=${priorityFees.median}`;
 
     const response = await fetch(
@@ -38,7 +45,7 @@ export async function lendAsset(
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-wallet-pubkey": agent.wallet.publicKey.toBase58(),
+          "x-wallet-pubkey": agentAddress,
           "x-api-key": LULO_API_KEY,
         },
         body: JSON.stringify(request),
@@ -49,13 +56,13 @@ export async function lendAsset(
       data: { transactionMeta },
     } = await response.json();
 
-    const luloTxn = VersionedTransaction.deserialize(
-      Buffer.from(transactionMeta[0].transaction, "base64"),
-    );
+    const transactionDecoder = getTransactionDecoder();
+
+    const luloTxn = transactionDecoder.decode(transactionMeta[0].transaction);
 
     // Sign and send transaction
     luloTxn.sign([agent.wallet]);
-    const signature = await agent.connection.sendTransaction(luloTxn);
+    const signature = await agent.rpc.sendTransaction(luloTxn);
 
     return signature;
   } catch (error: any) {
@@ -78,9 +85,13 @@ export async function getLendingDetails(
       throw new Error("Missing Lulo API key");
     }
 
+    const agentAddress = (
+      await getAddressFromPublicKey(agent.wallet.publicKey)
+    ).toString();
+
     const response = await fetch(`${LULO_API}/account`, {
       headers: {
-        "x-wallet-pubkey": agent.wallet.publicKey.toBase58(),
+        "x-wallet-pubkey": agentAddress,
         "x-api-key": LULO_API_KEY,
       },
     });

@@ -1,4 +1,10 @@
-import { Connection, Keypair, PublicKey } from "@solana/web3.js";
+import {
+  Address,
+  createKeyPairFromBytes,
+  createSolanaRpc,
+  generateKeyPair,
+  getAddressFromPublicKey,
+} from "@solana/web3.js";
 import bs58 from "bs58";
 import {
   request_faucet_funds,
@@ -26,24 +32,27 @@ import { DEFAULT_OPTIONS } from "../constants";
  * @property {PublicKey} wallet_address - Public key of the wallet
  */
 export class SolanaAgentKit {
-  public connection: Connection;
-  public wallet: Keypair;
-  public wallet_address: PublicKey;
+  public rpc: ReturnType<typeof createSolanaRpc>;
+  public wallet: CryptoKeyPair;
+  public wallet_address: CryptoKey;
 
   constructor(
     privateKey?: string,
     rpcURL = "https://api.mainnet-beta.solana.com",
   ) {
-    this.connection = new Connection(rpcURL);
+    this.rpc = createSolanaRpc(rpcURL);
     if (privateKey) {
-      this.wallet = Keypair.fromSecretKey(bs58.decode(privateKey));
+      this.wallet = await createKeyPairFromBytes(bs58.decode(privateKey), true);
     } else {
-      this.wallet = Keypair.generate();
-      console.log("Generated new wallet: ", this.wallet.publicKey.toBase58());
+      this.wallet = await generateKeyPair();
+      console.log(
+        "Generated new wallet: ",
+        getAddressFromPublicKey(this.wallet.publicKey),
+      );
       console.log(
         "Safely store the private key: ",
         "\n----------------------------------\n",
-        this.wallet.secretKey,
+        this.wallet.privateKey,
         "\n----------------------------------\n",
         "Please fund this wallet with SOL to use it (on mainnet), or use the faucet method to request funds (only on devnet/testnet).",
       );
@@ -67,19 +76,19 @@ export class SolanaAgentKit {
     return deploy_collection(this, options);
   }
 
-  async getBalance(token_address?: PublicKey) {
+  async getBalance(token_address?: Address) {
     return get_balance(this, token_address);
   }
 
   async mintNFT(
-    collectionMint: PublicKey,
+    collectionMint: Address,
     metadata: Parameters<typeof mintCollectionNFT>[2],
-    recipient?: PublicKey,
+    recipient?: Address,
   ) {
     return mintCollectionNFT(this, collectionMint, metadata, recipient);
   }
 
-  async transfer(to: PublicKey, amount: number, mint?: PublicKey) {
+  async transfer(to: Address, amount: number, mint?: Address) {
     return transfer(this, to, amount, mint);
   }
 
@@ -88,9 +97,9 @@ export class SolanaAgentKit {
   }
 
   async trade(
-    outputMint: PublicKey,
+    outputMint: Address,
     inputAmount: number,
-    inputMint?: PublicKey,
+    inputMint?: Address,
     slippageBps: number = DEFAULT_OPTIONS.SLIPPAGE_BPS,
   ) {
     return trade(this, outputMint, inputAmount, inputMint, slippageBps);

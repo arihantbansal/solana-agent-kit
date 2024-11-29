@@ -1,6 +1,6 @@
 import { Tool } from "langchain/tools";
 import { SolanaAgentKit } from "../index";
-import { PublicKey } from "@solana/web3.js";
+import { address } from "@solana/web3.js";
 
 export class SolanaBalanceTool extends Tool {
   name = "solana_balance";
@@ -13,7 +13,7 @@ export class SolanaBalanceTool extends Tool {
 
   async _call(input: string): Promise<string> {
     try {
-      const tokenAddress = input ? new PublicKey(input) : undefined;
+      const tokenAddress = input ? address(input) : undefined;
       const balance = await this.solanaKit.getBalance(tokenAddress);
       return `Balance: ${balance}`;
     } catch (error: any) {
@@ -34,8 +34,8 @@ export class SolanaTransferTool extends Tool {
   async _call(input: string): Promise<string> {
     try {
       const { to, amount, mint } = JSON.parse(input);
-      const recipient = new PublicKey(to);
-      const mintAddress = mint ? new PublicKey(mint) : undefined;
+      const recipient = address(to);
+      const mintAddress = mint ? address(mint) : undefined;
 
       await this.solanaKit.transfer(recipient, amount, mintAddress);
       return `Successfully transferred ${amount} to ${to}`;
@@ -100,9 +100,9 @@ export class SolanaMintNFTTool extends Tool {
   async _call(input: string): Promise<string> {
     try {
       const { collectionMint, metadata, recipient } = JSON.parse(input);
-      const recipientPubkey = recipient ? new PublicKey(recipient) : undefined;
+      const recipientPubkey = recipient ? address(recipient) : undefined;
       const result = await this.solanaKit.mintNFT(
-        new PublicKey(collectionMint),
+        address(collectionMint),
         metadata,
         recipientPubkey,
       );
@@ -127,9 +127,9 @@ export class SolanaTradeTool extends Tool {
       const { outputMint, inputAmount, inputMint, slippageBps } =
         JSON.parse(input);
       const tx = await this.solanaKit.trade(
-        new PublicKey(outputMint),
+        address(outputMint),
         inputAmount,
-        inputMint ? new PublicKey(inputMint) : undefined,
+        inputMint ? address(inputMint) : undefined,
         slippageBps,
       );
       return `Trade executed successfully. Transaction: ${tx}`;
@@ -204,7 +204,7 @@ export class SolanaLendAssetTool extends Tool {
       const { asset, amount, luloApiKey } = JSON.parse(input);
 
       const tx = await this.solanaKit.lendAssets(
-        new PublicKey(asset),
+        address(asset),
         amount,
         luloApiKey,
       );
